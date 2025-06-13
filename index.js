@@ -11,6 +11,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 let runningBots = {};
 
+// Start bot
 app.post("/start-bot", async (req, res) => {
   const token = req.body.token;
 
@@ -29,11 +30,12 @@ app.post("/start-bot", async (req, res) => {
     const info = await bot.getMe();
     const commands = {};
 
+    // Bot command listener
     bot.on("message", (msg) => {
       const text = msg.text.trim();
       if (commands[text]) {
         let userCode = commands[text];
-        let parsedCode = userCode.replace(/sent\(.*?)\/g, `bot.sendMessage(msg.chat.id, $1);`);
+        let parsedCode = userCode.replace(/sent["'`](.*?)["'`]/g, `bot.sendMessage(msg.chat.id, "$1");`);
         try {
           eval(parsedCode);
         } catch (err) {
@@ -42,7 +44,8 @@ app.post("/start-bot", async (req, res) => {
       }
     });
 
-    bot.onText(/\\/start/, (msg) => {
+    // Default start reply
+    bot.onText(/\/start/, (msg) => {
       bot.sendMessage(msg.chat.id, "👋 Hello! I'm alive.");
     });
 
@@ -59,6 +62,7 @@ app.post("/start-bot", async (req, res) => {
   }
 });
 
+// Add command to bot
 app.post("/add-command", (req, res) => {
   const { token, command, code } = req.body;
 
@@ -74,6 +78,7 @@ app.post("/add-command", (req, res) => {
   res.send("✅ Command added.");
 });
 
+// Stop bot
 app.post("/stop-bot", (req, res) => {
   const token = req.body.token;
 
@@ -86,6 +91,7 @@ app.post("/stop-bot", (req, res) => {
   res.send("⚠️ No running bot found.");
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
