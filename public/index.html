@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mini Bot Host</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 100px;
+    }
+    input {
+      padding: 10px;
+      width: 300px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-left: 10px;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>🚀 Start Your Telegram Bot</h2>
+  <input id="tokenInput" placeholder="Enter your bot token">
+  <button onclick="startBot()">Start Bot</button>
+
+  <p id="status"></p>
+
+  <script>
+    function startBot() {
+      const token = document.getElementById("tokenInput").value.trim();
+      fetch("/start-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+      })
+      .then(res => res.text())
+      .then(response => {
+        document.getElementById("status").innerText = response;
+      });
+    }
+  </script>
+</body>
+</html>
