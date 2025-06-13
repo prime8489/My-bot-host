@@ -1,47 +1,110 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mini Bot Host</title>
+  <title>My Bot Hosting</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 100px;
-    }
-    input {
-      padding: 10px;
-      width: 300px;
-    }
-    button {
-      padding: 10px 20px;
-      margin-left: 10px;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-    }
+    body { font-family: sans-serif; background: #1e1e2f; color: white; padding: 20px; }
+    input, button, textarea { width: 100%; margin-top: 10px; padding: 8px; }
+    .bot-card { background: #2b2b3c; padding: 10px; margin-top: 15px; border-radius: 10px; }
   </style>
 </head>
 <body>
-  <h2>🚀 Start Your Telegram Bot</h2>
-  <input id="tokenInput" placeholder="Enter your bot token">
-  <button onclick="startBot()">Start Bot</button>
 
-  <p id="status"></p>
+  <h2>🤖 Start a New Bot</h2>
+  <input id="tokenInput" placeholder="Enter your bot token" />
+  <button onclick="startBot()">🚀 Start Bot</button>
+
+  <h3>📜 Your Bots</h3>
+  <div id="botList"></div>
+
+  <!-- Popup -->
+  <div id="popup" style="display:none; background:#2b2b3c; padding:20px; border-radius:10px;">
+    <h3>Create Command</h3>
+    <input id="commandName" placeholder="/yourcommand" />
+    <textarea id="commandCode" rows="6" placeholder='sent("Hello")'></textarea>
+    <button onclick="saveCommand()">✅ Save</button>
+    <button onclick="closePopup()">❌ Cancel</button>
+  </div>
 
   <script>
+    let bots = JSON.parse(localStorage.getItem("bots")) || {};
+    let selectedToken = null;
+
     function startBot() {
       const token = document.getElementById("tokenInput").value.trim();
+      if (!token) return alert("Enter token");
+
       fetch("/start-bot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token })
       })
-      .then(res => res.text())
-      .then(response => {
-        document.getElementById("status").innerText = response;
+      .then(res => res.json())
+      .then(data => {
+        bots[token] = {
+          name: data.first_name,
+          username: data.username,
+          token,
+          status: "running",
+          commands: {}
+        };
+        localStorage.setItem("bots", JSON.stringify(bots));
+        renderBots();
       });
     }
+
+    function renderBots() {
+      const botList = document.getElementById("botList");
+      botList.innerHTML = "";
+
+      for (let token in bots) {
+        const bot = bots[token];
+        const div = document.createElement("div");
+        div.className = "bot-card";
+        div.innerHTML = `
+          <b>🤖 ${bot.name} (${bot.username})</b><br>
+          <small>${token}</small><br>
+          Status: ${bot.status}<br><br>
+          <button onclick="stopBot('${token}')">${bot.status === 'running' ? '🛑 Stop Bot' : '🚀 Launch Bot'}</button>
+          <button onclick="deleteBot('${token}')">🗑 Delete</button>
+          <button onclick="openPopup('${token}')">🧠 Create Codes</button>
+        `;
+        botList.appendChild(div);
+      }
+    }
+
+    function stopBot(token) {
+      bots[token].status = bots[token].status === 'running' ? 'stopped' : 'running';
+      localStorage.setItem("bots", JSON.stringify(bots));
+      renderBots();
+    }
+
+    function deleteBot(token) {
+      delete bots[token];
+      localStorage.setItem("bots", JSON.stringify(bots));
+      renderBots();
+    }
+
+    function openPopup(token) {
+      selectedToken = token;
+      document.getElementById("popup").style.display = "block";
+    }
+
+    function closePopup() {
+      document.getElementById("popup").style.display = "none";
+    }
+
+    function saveCommand() {
+      const cmd = document.getElementById("commandName").value.trim();
+      const code = document.getElementById("commandCode").value.trim();
+      if (!cmd || !code) return alert("Fill all fields");
+
+      bots[selectedToken].commands[cmd] = code;
+      localStorage.setItem("bots", JSON.stringify(bots));
+      closePopup();
+    }
+
+    renderBots();
   </script>
 </body>
 </html>
