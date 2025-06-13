@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-let runningBots = {}; // token => { bot, commands }
+let runningBots = {};
 
 app.post("/start-bot", async (req, res) => {
   const token = req.body.token;
@@ -27,14 +27,13 @@ app.post("/start-bot", async (req, res) => {
   try {
     const bot = new TelegramBot(token, { polling: true });
     const info = await bot.getMe();
-
-    const commands = {}; // Empty, will be added from UI
+    const commands = {};
 
     bot.on("message", (msg) => {
       const text = msg.text.trim();
       if (commands[text]) {
         let userCode = commands[text];
-        let parsedCode = userCode.replace(/sent(.*?)/g, `bot.sendMessage(msg.chat.id, $1);`);
+        let parsedCode = userCode.replace(/sent\(.*?)\/g, `bot.sendMessage(msg.chat.id, $1);`);
         try {
           eval(parsedCode);
         } catch (err) {
@@ -43,7 +42,7 @@ app.post("/start-bot", async (req, res) => {
       }
     });
 
-    bot.onText(/\/start/, (msg) => {
+    bot.onText(/\\/start/, (msg) => {
       bot.sendMessage(msg.chat.id, "👋 Hello! I'm alive.");
     });
 
@@ -73,6 +72,18 @@ app.post("/add-command", (req, res) => {
 
   runningBots[token].commands[command] = code;
   res.send("✅ Command added.");
+});
+
+app.post("/stop-bot", (req, res) => {
+  const token = req.body.token;
+
+  if (runningBots[token]) {
+    runningBots[token].bot.stopPolling();
+    delete runningBots[token];
+    return res.send("🛑 Bot stopped.");
+  }
+
+  res.send("⚠️ No running bot found.");
 });
 
 app.listen(PORT, () => {
